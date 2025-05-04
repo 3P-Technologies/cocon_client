@@ -1,0 +1,27 @@
+# pyproject.toml (PEP 621 layout)
+[build-system]
+requires = ["hatchling>=1.18"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cocoon-client"
+description = "Async client for Televic CoCoon conference API"
+readme = "README.md"
+version = "0.1.0"
+requires-python = ">=3.11"
+dependencies = ["aiohttp"]
+license = { text = "AGPL-3.0-or-later"}
+classifiers = [
+"Programming Language :: Python :: 3.11",
+"Programming Language :: Python :: 3.12",
+"Programming Language :: Python :: 3.13",
+"Programming Language :: Python :: 3.14",
+"License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+"Typing :: Typed",
+]
+
+[project.urls]
+"Source code" = "https://github.com/MarcoMiano/televic_cocoon_client"
+
+[tool.hatch.build.targets.wheel]
+include = ["televic_cocoon_client/py.typed"]
