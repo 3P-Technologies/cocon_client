@@ -1,4 +1,4 @@
-# Televic CoCoon Client
+# Televic CoCon Client
 
 > An asynchronous Python client for interacting with the Televic CoCon REST API.
 
@@ -22,8 +22,8 @@ This library provides a simple, type-safe interface for communicating with a Tel
 Clone the repository and install it locally:
 
 ```bash
-git clone https://your.git.repo.url/televic-cocoon-client.git
-cd televic-cocoon-client
+git clone https://your.git.repo.url/televic-CoCon-client.git
+cd televic-CoCon-client
 pip install .
 ```
 > Requires **Python 3.11+**.
@@ -34,13 +34,13 @@ pip install .
 
 ```python
 import asyncio
-from cocoon_client import CoCoonClient, Model
+from CoCon_client import CoConClient, Model
 
 async def handle_notification(data: dict):
     print("Received:", data)
 
 async def main():
-    async with CoCoonClient("192.168.1.100", handler=handle_notification) as client:
+    async with CoConClient("192.168.1.100", handler=handle_notification) as client:
         await client.subscribe([Model.DELEGATE, Model.MICROPHONE])
         await client.send("SomeCommand", {"param": "value"})
         await asyncio.sleep(10)
@@ -55,7 +55,7 @@ asyncio.run(main())
 You can override default behavior using the `Config` dataclass:
 
 ```python
-from cocoon_client import Config
+from CoCon_client import Config
 
 custom_config = Config(
     poll_interval=2.0,
@@ -63,7 +63,7 @@ custom_config = Config(
     session_timeout=10.0
 )
 
-client = CoCoonClient("host", config=custom_config)
+client = CoConClient("host", config=custom_config)
 ```
 ---
 
