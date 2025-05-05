@@ -1,4 +1,4 @@
-# TELEVIC COCOON CLIENT
+# TELEVIC CoCon CLIENT
 # client.py
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 3P Technologies Srl
@@ -29,7 +29,7 @@ if not logging.getLogger().handlers:
 
 
 class Model(str, Enum):
-    """Represents the various CoCoon data models used in the API."""
+    """Represents the various CoCon data models used in the API."""
 
     ROOM = "Room"
     MICROPHONE = "Microphone"
@@ -58,17 +58,17 @@ class _EP(str, Enum):
     NOTIFICATION = "Notification"
 
 
-class CoCoonError(Exception):
+class CoConError(Exception):
     """Base class for all client errors."""
 
 
-class CoCoonConnectionError(CoCoonError):
+class CoConConnectionError(CoConError):
     """Raised when a connection attempt fails."""
 
     pass
 
 
-class CoCoonCommandError(CoCoonError):
+class CoConCommandError(CoConError):
     """Raised when a command sent to the API fails."""
 
     def __init__(self, endpoint: str, status: int, body: str | None = None) -> None:
@@ -77,7 +77,8 @@ class CoCoonCommandError(CoCoonError):
         Args:
             endpoint (str): The API endpoint that failed.
             status (int): HTTP status code returned.
-            body (str | None, optional): Optional response body for error inspection. Defaults to None.
+            body (str | None, optional): Optional response body for error inspection.
+                Defaults to None.
         """
         super().__init__(f"'/{endpoint}' failed with HTTP {status}")
         self.endpoint: str = endpoint
@@ -85,7 +86,7 @@ class CoCoonCommandError(CoCoonError):
         self.body: str | None = body
 
 
-class CoCoonRetryError(CoCoonError):
+class CoConRetryError(CoConError):
     """Raised when a retryable operation exceeds max retries."""
 
     pass
@@ -93,7 +94,7 @@ class CoCoonRetryError(CoCoonError):
 
 @dataclass(slots=True)
 class Config:
-    """Configuration for CoCoonClient behavior."""
+    """Configuration for CoConClient behavior."""
 
     poll_interval: float = 1.0
     max_retries: int = 5
@@ -101,9 +102,9 @@ class Config:
     session_timeout: float = 7.0
 
 
-class CoCoonClient:
+class CoConClient:
     """
-    Asynchronous client for interacting with the Televic Cocoon REST interface.
+    Asynchronous client for interacting with the Televic CoCon REST interface.
 
     Supports long-polling notifications, command sending, and model subscriptions.
     """
@@ -117,16 +118,18 @@ class CoCoonClient:
         config: Config | None = None,
     ) -> None:
         """
-        Initialize the CoCoonClient with connection settings and optional event handlers.
+        Initialize the CoConClient with connection settings and optional event handlers.
 
         Args:
             url (str): The hostname or IP address of the CoCon server.
             port (int): The port to connect to on the server. Defaults to 8890.
-            handler (Callable[[dict], Awaitable[None]] | None): An async function to handle incoming notification data. Defaults to None
-            on_handler_error (Callable[[Exception, dict], None] | None): A callback invoked when the handler raises an exception. Defaults to None
+            handler (Callable[[dict], Awaitable[None]] | None): An async function to handle
+                incoming notification data. Defaults to None
+            on_handler_error (Callable[[Exception, dict], None] | None): A callback invoked when
+                the handler raises an exception. Defaults to None
             config (Config): Optional Config object to override default timing and retry settings.
         """
-        self.base_url: str = f"http://{url}:{port}/CoCoon"
+        self.base_url: str = f"http://{url}:{port}/CoCon"
         self._connect_url: str = f"{self.base_url}/{_EP.CONNECT}"
         self._notify_url: str = f"{self.base_url}/{_EP.NOTIFICATION}"
         self._shutdown_event = asyncio.Event()
@@ -143,10 +146,11 @@ class CoCoonClient:
     async def __aenter__(self) -> Self:
         """Enter the async context manager.
 
-        Initializes the aiohttp session and starts the supervisor task which manages polling and command processing.
+        Initializes the aiohttp session and starts the supervisor task which manages polling and
+        command processing.
 
         Returns:
-            Self: The initialized CoCoonClient instance.
+            Self: The initialized CoConClient instance.
         """
         self.session = aiohttp.ClientSession(
             timeout=ClientTimeout(self.config.session_timeout)
@@ -165,7 +169,8 @@ class CoCoonClient:
     ) -> None:
         """Exit the async context manager.
 
-        Signals shutdown, cancels or completes the supervisor task, calls the close method to clean up the queue, and closes the HTTP session.
+        Signals shutdown, cancels or completes the supervisor task, calls the close method to clean
+        up the queue, and closes the HTTP session.
 
         Args:
             exc_type (type[BaseException] | None): Exception type if raised during the context.
@@ -226,11 +231,12 @@ class CoCoonClient:
                 await asyncio.sleep(1)  # avoid tight loop on fatal error
 
     async def _connect(self) -> str:
-        """Request a new connection ID from the CoCoon API.
+        """Request a new connection ID from the CoCon API.
 
         Raises:
-            Exception: If the session is None, or if the call return 200 but the connect field in the response is set to False, or if the connection ID is missing from the response.
-            CoCoonConnectionError: If the connection failed.
+            Exception: If the session is None, or if the call return 200 but the connect field in
+            the response is set to False, or if the connection ID is missing from the response.
+            CoConConnectionError: If the connection failed.
 
         Returns:
             str: A valid connection ID.
@@ -240,7 +246,7 @@ class CoCoonClient:
 
         async with self.session.post(self._connect_url) as resp:
             if resp.status != 200:
-                raise CoCoonConnectionError(
+                raise CoConConnectionError(
                     f"'/{_EP.CONNECT}' failed with status {resp.status}"
                 )
 
@@ -275,7 +281,12 @@ class CoCoonClient:
             await self._handle_incoming(data)
 
     async def _resubscribe(self) -> None:
-        """Resend subscriptions after reconnecting."""
+        """
+        Resend subscriptions after reconnecting.
+
+        This method is used internally after a dropped connection (eg. a 400 error) to re-establish
+        all previous model subscriptions using the current connection ID.
+        """
         for model in self._subscriptions:
             await self._send_command(
                 "Subscribe",
@@ -283,7 +294,14 @@ class CoCoonClient:
             )
 
     async def _connect_and_poll(self) -> None:
-        """Handles full connect-then-notify cycle including auto-reconnect on 400 and 408 errors."""
+        """
+        Handles full connect-then-notify cycle including auto-reconnect on 400 errors.
+
+        This method first obtains a connection ID from the server using `_connect`, then enters a
+        loop that perform long-polling via `_notify`.
+        If a 400 response is received (invalid connection ID), it will reconnect and re-subscribe
+        to previously tracked models. Other errors are retried with delay.
+        """
         self._connection_id = await self._retry_with_backoff(self._connect)
 
         while not self._shutdown_event.is_set():
@@ -320,18 +338,45 @@ class CoCoonClient:
                         await asyncio.sleep(1)
 
     async def _send_command(self, endpoint: str, params: dict[str, str]) -> Any:
+        """
+        Internal method to send a command to a given endpoint with retry support.
+
+        Args:
+            endpoint (str): The CoCon API endpoint to send the command to (e.g. "Subscribe").
+            params (dict[str,str]): Dictionary of query parameters to include in the request.
+
+        Returns:
+            Any: The parsed JSON response if the server returns JSON, otherwise the raw text.
+
+        Raises:
+            Exception: If session is None.
+            CoConCommandError: If the server responds with a non-200 status code.
+        """
         if self.session is None:
             raise Exception("Session is None.")
 
         url = f"{self.base_url}/{endpoint}"
 
         async def _send() -> Any | str:
+            """
+            Inner coreoutine that performs the actual HTTP POST request.
+
+            Sends the request to the target URL with the provided parameters, checks for a
+            successful response, and parses the response based on content type.
+
+            Raises:
+                Exception: If session is None.
+                CoConCommandError: If the server responds with a non-200 HTTP status code.
+
+            Returns:
+                Any | str: Parsed JSON if the response is application/json , otherwise plain text.
+            """
             if self.session is None:
                 raise Exception("Session is None.")
             async with self.session.post(url, params=params) as resp:
                 if resp.status != 200:
                     body: str = await resp.text()
-                    raise CoCoonCommandError(endpoint, resp.status, body)
+                    raise CoConCommandError(endpoint, resp.status, body)
                 logger.info("/%s - sent successfully", endpoint)
 
                 content_type = resp.headers.get("Content-Type", "")
@@ -343,6 +388,13 @@ class CoCoonClient:
         return await self._retry_with_backoff(_send)
 
     async def _command_loop(self) -> None:
+        """
+        Continuously processes queued commands and sends them to the server.
+
+        Waits for new commands in the internal queue, attempts to send them one by one, and marks
+        them done whether successful or not. Timeouts are ignored to allow continuous polling
+        without blocking indefinitely.
+        """
         while not self._shutdown_event.is_set():
             try:
                 endpoint, params = await asyncio.wait_for(
@@ -358,6 +410,21 @@ class CoCoonClient:
                 logger.error("error sending command: %s", exc)
 
     async def _retry_with_backoff(self, task_func: Callable[[], Awaitable[T]]) -> T:
+        """
+        Retries a coroutine with exponential backoff and jitter until success or retry limit.
+
+        This method is generic and works with any return type `T`, where `T` is the return type
+        of the async function passed in.
+
+        Args:
+            task_func (Callable[[], Awaitable[T]]): An async callable that will be retried.
+
+        Raises:
+            CoCoonRetryError: If the retry limit is exceeded.
+
+        Returns:
+            T: The result returned by the successful execution of task_func.
+        """
         attempt = 0
         while self.config.max_retries < 0 or attempt < self.config.max_retries:
             try:
@@ -369,9 +436,19 @@ class CoCoonClient:
                 logger.warning("retry %s after %.2fs - %s", attempt + 1, delay, exc)
                 await asyncio.sleep(delay)
                 attempt += 1
-        raise CoCoonRetryError("Max retries exceeded.")
+        raise CoConRetryError("Max retries exceeded.")
 
     async def _handle_incoming(self, data: dict) -> None:
+        """
+        Handles data received from the notify poll.
+
+        If a handler is registered, the data is passed to it. If the handler raises an
+        exception, an optional error hook is invoked and the data is logged. Otherwise, the data
+        is logged.
+
+        Args:
+            data (dict): The dictionary received from the server containing event updates.
+        """
         if self._handler:
             try:
                 if inspect.iscoroutinefunction(self._handler):
@@ -388,14 +465,29 @@ class CoCoonClient:
         else:
             logger.info("received: %s", data)
 
-    async def open(self):
+    async def open(self) -> None:
+        """
+        Manually open a client session and start supervision.
+
+        This method creates an aiohttp session and begins background tasks for polling
+        and command processing. It's intended for use outside of a context manager.
+
+        Raises:
+            Exception: If the session or supervision fails during startup.
+        """
         async with aiohttp.ClientSession(
             timeout=ClientTimeout(self.config.session_timeout)
         ) as session:
             self.session = session
             await self._supervise()
 
-    async def close(self):
+    async def close(self) -> None:
+        """
+        Gracefully shut down the client and clean up resources.
+
+        Cancels the supervisor task if running, drains and completes all remaining
+        items in the command queue, and ensures shutdown is complete.
+        """
         self._shutdown_event.set()
 
         if hasattr(self, "_supervisor_task"):
@@ -411,10 +503,29 @@ class CoCoonClient:
 
         await self._command_queue.join()
 
-    async def send(self, endpoint: str, params: dict[str, str]):
+    async def send(self, endpoint: str, params: dict[str, str]) -> None:
+        """
+        Public method to queue a command for sending.
+
+        Adds the command to the internal queue to be sent asynchronously.
+
+        Args:
+            endpoint (str): The API command endpoint.
+            params (dict[str, str]): Dictionary of parameters to include in the request.
+        """
         await self._command_queue.put((endpoint, params))
 
-    async def subscribe(self, models: list[str | Model], details: bool | str = True):
+    async def subscribe(
+        self, models: list[str | Model], details: bool | str = True
+    ) -> None:
+        """
+        Subscribe to one or more models to receive updates via long-polling.
+
+        Args:
+            models (list[str | Model]): List of model names or `Model` enums to subscribe to.
+            details (bool | str): Whether to request detailed updates (default: True). If passed as
+                a boolean, it is converted to a lowercase string.
+        """
         for model in models:
             await self._send_command(
                 "Subscribe",
@@ -426,7 +537,13 @@ class CoCoonClient:
             )
             self._subscriptions.add(str(model))
 
-    async def unsubscribe(self, models: list[str | Model]):
+    async def unsubscribe(self, models: list[str | Model]) -> None:
+        """
+        Unsubscribe from one or more previously subscribed models.
+
+        Args:
+            models (list[str | Model]): List of model names or `Model` enums to unsubscribe from.
+        """
         for model in models:
             await self._send_command(
                 "Unsubscribe",
@@ -438,4 +555,11 @@ class CoCoonClient:
             self._subscriptions.discard(str(model))
 
     async def set_handler(self, handler: Callable[[dict], Awaitable[None]]):
+        """
+        Update the handler used to process incoming notification messages.
+
+        Args:
+            handler (Callable[[dict], Awaitable[None]]): An async function that will be called
+                with each incoming data payload.
+        """
         self._handler = handler
