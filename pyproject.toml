@@ -21,7 +21,7 @@ classifiers = [
 ]
 
 [project.urls]
-"Source code" = "https://github.com/MarcoMiano/televic_cocoon_client"
+"Source code" = "https://github.com/MarcoMiano/televic_cocon_client"
 
 [tool.hatch.build.targets.wheel]
-include = ["televic_cocoon_client/py.typed"]
+include = ["televic_cocon_client/py.typed"]
