@@ -4,7 +4,7 @@ requires = ["hatchling>=1.18"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cocoon-client"
+name = "cocon_client"
 description = "Async client for Televic CoCoon conference API"
 readme = "README.md"
 version = "0.1.0"
