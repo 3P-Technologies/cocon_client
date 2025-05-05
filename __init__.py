@@ -1,19 +1,19 @@
 from .client import (
-    CoCoonClient,
+    CoConClient,
     Config,
     Model,
-    CoCoonError,
-    CoCoonConnectionError,
-    CoCoonCommandError,
-    CoCoonRetryError,
+    CoConError,
+    CoConConnectionError,
+    CoConCommandError,
+    CoConRetryError,
 )
 
 __all__: list[str] = [
-    "CoCoonClient",
+    "CoConClient",
     "Config",
     "Model",
-    "CoCoonError",
-    "CoCoonConnectionError",
-    "CoCoonCommandError",
-    "CoCoonRetryError",
+    "CoConError",
+    "CoConConnectionError",
+    "CoConCommandError",
+    "CoConRetryError",
 ]
