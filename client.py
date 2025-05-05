@@ -61,9 +61,16 @@ class _EP(str, Enum):
 class CoConError(Exception):
     """Base class for all client errors."""
 
+    pass
+
 
 class CoConConnectionError(CoConError):
-    """Raised when a connection attempt fails."""
+    """
+    Raised when the client fails to establish a connection with the CoCon server.
+
+    This may happen if the server is offline, unreachable, or responds with a failure during the
+    initial connection handshake.
+    """
 
     pass
 
@@ -87,7 +94,12 @@ class CoConCommandError(CoConError):
 
 
 class CoConRetryError(CoConError):
-    """Raised when a retryable operation exceeds max retries."""
+    """
+    Raised when a retryable operation exceeds the maximum number of retry attempts.
+
+    Commonly occurs when repeated transient failures (e.g. timeouts) persist beyond the configured
+    limit in `Config.max_retries`.
+    """
 
     pass
 
@@ -359,7 +371,7 @@ class CoConClient:
 
         async def _send() -> Any | str:
             """
-            Inner coreoutine that performs the actual HTTP POST request.
+            Inner coroutine that performs the actual HTTP POST request.
 
             Sends the request to the target URL with the provided parameters, checks for a
             successful response, and parses the response based on content type.
