@@ -8,9 +8,10 @@ import aiohttp
 import random
 import inspect
 import logging
-from asyncio import Task
+import json
+from asyncio import Task, Future
 from aiohttp import ClientSession, ClientTimeout, ClientResponseError
-from typing import Callable, TypeVar, Awaitable, Any, Self
+from typing import Callable, TypeVar, Awaitable, Any, Self, NamedTuple
 from types import TracebackType
 from enum import Enum
 from dataclasses import dataclass
@@ -21,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 if not logging.getLogger().handlers:
     logging.basicConfig(
-        level=logging.INFO,
+        level=logging.DEBUG,
         format="[{levelname}] {asctime} - {name} {message}",
         style="{",
         datefmt="%Y-%m-%dT%H:%M:%S",
@@ -114,6 +115,12 @@ class Config:
     session_timeout: float = 7.0
 
 
+class _QueuedCommand(NamedTuple):
+    endpoint: str
+    params: dict[str, str] | None
+    future: Future[Any]
+
+
 class CoConClient:
     """
     Asynchronous client for interacting with the Televic CoCon REST interface.
@@ -142,13 +149,11 @@ class CoConClient:
             config (Config): Optional Config object to override default timing and retry settings.
         """
         self.base_url: str = f"http://{url}:{port}/CoCon"
-        self._connect_url: str = f"{self.base_url}/{_EP.CONNECT}"
-        self._notify_url: str = f"{self.base_url}/{_EP.NOTIFICATION}"
+        self._connect_url: str = f"{self.base_url}/{_EP.CONNECT.value}"
+        self._notify_url: str = f"{self.base_url}/{_EP.NOTIFICATION.value}"
         self._shutdown_event = asyncio.Event()
         self.session: ClientSession | None = None
-        self._command_queue: asyncio.Queue[tuple[str, dict[str, str]]] = asyncio.Queue(
-            maxsize=1000
-        )
+        self._command_queue: asyncio.Queue[_QueuedCommand] = asyncio.Queue(maxsize=1000)
         self._subscriptions: set[str] = set()
         self._handler: Callable[[dict], Awaitable[None]] | None = handler
         self._on_handler_error = on_handler_error
@@ -256,23 +261,25 @@ class CoConClient:
         if self.session is None:
             raise Exception("Session is None.")
 
-        async with self.session.post(self._connect_url) as resp:
+        async with self.session.get(self._connect_url) as resp:
             if resp.status != 200:
                 raise CoConConnectionError(
-                    f"'/{_EP.CONNECT}' failed with status {resp.status}"
+                    f"'/{_EP.CONNECT.value}' failed with status {resp.status}"
                 )
-
-            json = await resp.json()
-            if not json.get("Connect"):
+            # parse twice because televic return body as json but in quotes and the parser just reformat it
+            resp_json = json.loads(await resp.json())
+            if not resp_json.get("Connect"):
                 raise Exception(
-                    f"'/{_EP.CONNECT}' call returned 200 but connect in response is False"
+                    f"'/{_EP.CONNECT.value}' call returned 200 but connect in response is False"
                 )
 
-            conn_id: str = json.get("id")
+            conn_id: str = resp_json.get("id")
             if not conn_id:
-                raise Exception(f"'/{_EP.CONNECT}' missing connection id in response")
-            logger.info("/%s OK - connection established", _EP.CONNECT)
-            logger.debug("/%s OK - connection id=%s", _EP.CONNECT, conn_id)
+                raise Exception(
+                    f"'/{_EP.CONNECT.value}' missing connection id in response"
+                )
+            logger.info("/%s OK - connection established", _EP.CONNECT.value)
+            logger.debug("/%s OK - connection id=%s", _EP.CONNECT.value, conn_id)
             return conn_id
 
     async def _notify(self) -> None:
@@ -285,11 +292,11 @@ class CoConClient:
         if self.session is None:
             raise Exception("Session is None.")
 
-        url = f"{self._notify_url}?id={self._connection_id}"
+        url = f"{self._notify_url}/id={self._connection_id}"
         async with self.session.get(url, timeout=ClientTimeout(total=35.0)) as resp:
             if resp.status != 200:
                 raise ClientResponseError(resp.request_info, (), status=resp.status)
-            data = await resp.json()
+            data = json.loads(await resp.json())
             await self._handle_incoming(data)
 
     async def _resubscribe(self) -> None:
@@ -324,11 +331,11 @@ class CoConClient:
                     case 400:
                         logger.warning(
                             "/%s 400 - invalid connection id, reconnecting",
-                            _EP.NOTIFICATION,
+                            _EP.NOTIFICATION.value,
                         )
                         logger.debug(
                             "/%s 400 - connection id used=%s",
-                            _EP.NOTIFICATION,
+                            _EP.NOTIFICATION.value,
                             self._connection_id,
                         )
                         self._connection_id = await self._retry_with_backoff(
@@ -338,18 +345,18 @@ class CoConClient:
                     case 408:
                         logger.warning(
                             "/%s 408 - channel timed out, retrying notify",
-                            _EP.NOTIFICATION,
+                            _EP.NOTIFICATION.value,
                         )
                     case _:
                         logger.error(
                             "/%s %d- unexpected error: %s, retrying",
-                            _EP.NOTIFICATION,
+                            _EP.NOTIFICATION.value,
                             exc.status,
                             exc,
                         )
                         await asyncio.sleep(1)
 
-    async def _send_command(self, endpoint: str, params: dict[str, str]) -> Any:
+    async def _send_command(self, endpoint: str, params: dict[str, str] | None) -> Any:
         """
         Internal method to send a command to a given endpoint with retry support.
 
@@ -369,7 +376,7 @@ class CoConClient:
 
         url = f"{self.base_url}/{endpoint}"
 
-        async def _send() -> Any | str:
+        async def _send() -> dict | str:
             """
             Inner coroutine that performs the actual HTTP POST request.
 
@@ -385,15 +392,15 @@ class CoConClient:
             """
             if self.session is None:
                 raise Exception("Session is None.")
-            async with self.session.post(url, params=params) as resp:
+            async with self.session.get(url, params=params) as resp:
                 if resp.status != 200:
                     body: str = await resp.text()
                     raise CoConCommandError(endpoint, resp.status, body)
                 logger.info("/%s - sent successfully", endpoint)
 
-                content_type = resp.headers.get("Content-Type", "")
+                content_type: str = resp.headers.get("Content-Type", "")
                 if "application/json" in content_type:
-                    return await resp.json()
+                    return json.loads(await resp.json())
                 else:
                     return await resp.text()
 
@@ -409,11 +416,17 @@ class CoConClient:
         """
         while not self._shutdown_event.is_set():
             try:
-                endpoint, params = await asyncio.wait_for(
+                qcmd: _QueuedCommand = await asyncio.wait_for(
                     self._command_queue.get(), timeout=self.config.poll_interval
                 )
                 try:
-                    await self._send_command(endpoint, params)
+                    result = await self._send_command(qcmd.endpoint, qcmd.params)
+                    if not qcmd.future.done():
+                        qcmd.future.set_result(result)
+                except Exception as exc:
+                    if not qcmd.future.done():
+                        qcmd.future.set_exception(exc)
+                    logger.error("error sending command: %s", exc)
                 finally:
                     self._command_queue.task_done()
             except asyncio.TimeoutError:
@@ -515,7 +528,7 @@ class CoConClient:
 
         await self._command_queue.join()
 
-    async def send(self, endpoint: str, params: dict[str, str]) -> None:
+    async def send(self, endpoint: str, params: dict[str, str] | None = None) -> Any:
         """
         Public method to queue a command for sending.
 
@@ -525,7 +538,10 @@ class CoConClient:
             endpoint (str): The API command endpoint.
             params (dict[str, str]): Dictionary of parameters to include in the request.
         """
-        await self._command_queue.put((endpoint, params))
+        loop = asyncio.get_running_loop()
+        fut: Future[Any] = loop.create_future()
+        await self._command_queue.put(_QueuedCommand(endpoint, params, fut))
+        return await fut
 
     async def subscribe(
         self, models: list[str | Model], details: bool | str = True
@@ -539,7 +555,7 @@ class CoConClient:
                 a boolean, it is converted to a lowercase string.
         """
         for model in models:
-            await self._send_command(
+            resp: dict = await self._send_command(
                 "Subscribe",
                 {
                     "Model": str(model),
@@ -548,6 +564,7 @@ class CoConClient:
                 },
             )
             self._subscriptions.add(str(model))
+            logger.debug("/Subscribe - %s", resp)
 
     async def unsubscribe(self, models: list[str | Model]) -> None:
         """
@@ -557,7 +574,7 @@ class CoConClient:
             models (list[str | Model]): List of model names or `Model` enums to unsubscribe from.
         """
         for model in models:
-            await self._send_command(
+            resp: dict = await self._send_command(
                 "Unsubscribe",
                 {
                     "Model": str(model),
@@ -565,8 +582,9 @@ class CoConClient:
                 },
             )
             self._subscriptions.discard(str(model))
+            logger.debug("/UnSubscribe - %s", resp)
 
-    async def set_handler(self, handler: Callable[[dict], Awaitable[None]]):
+    async def set_handler(self, handler: Callable[[dict], Awaitable[None]]) -> None:
         """
         Update the handler used to process incoming notification messages.
 
