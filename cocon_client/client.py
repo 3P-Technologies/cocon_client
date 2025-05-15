@@ -11,12 +11,12 @@ import logging
 import json
 from asyncio import Task, Future
 from aiohttp import ClientSession, ClientTimeout, ClientResponseError
-from typing import Callable, TypeVar, Awaitable, Any, Self, NamedTuple
+from typing import Callable, Awaitable, Any, Self
 from types import TracebackType
-from enum import Enum
-from dataclasses import dataclass
-
-T = TypeVar("T")
+from .models import Model, _EP
+from .errors import CoConConnectionError, CoConCommandError, CoConRetryError
+from .types import T, JSON, CommandParams, AsyncHandler, ErrorHandler, QueuedCommand
+from .config import Config
 
 logger = logging.getLogger(__name__)
 
@@ -27,98 +27,6 @@ if not logging.getLogger().handlers:
         style="{",
         datefmt="%Y-%m-%dT%H:%M:%S",
     )
-
-
-class Model(str, Enum):
-    """Represents the various CoCon data models used in the API."""
-
-    ROOM = "Room"
-    MICROPHONE = "Microphone"
-    MEETING_AGENDA = "MeetingAgenda"
-    VOTING = "Voting"
-    TIMER = "Timer"
-    DELEGATE = "Delegate"
-    AUDIO = "Audio"
-    INTERPRETATION = "Interpretation"
-    LOGGING = "Logging"
-    BUTTON_LED_EVENT = "ButtonLED_Event"
-    INTERACTIVE = "Interactive"
-    EXTERNAL = "External"
-    INTERCOM = "Intercom"
-    VIDEO = "Video"
-
-    def __str__(self) -> str:
-        """Return the string representation of the enum value."""
-        return self.value
-
-
-class _EP(str, Enum):
-    """Internal enumeration of known API endpoints."""
-
-    CONNECT = "Connect"
-    NOTIFICATION = "Notification"
-
-
-class CoConError(Exception):
-    """Base class for all client errors."""
-
-    pass
-
-
-class CoConConnectionError(CoConError):
-    """
-    Raised when the client fails to establish a connection with the CoCon server.
-
-    This may happen if the server is offline, unreachable, or responds with a failure during the
-    initial connection handshake.
-    """
-
-    pass
-
-
-class CoConCommandError(CoConError):
-    """Raised when a command sent to the API fails."""
-
-    def __init__(self, endpoint: str, status: int, body: str | None = None) -> None:
-        """Initialize the command error with endpoint, status code, and optional response body.
-
-        Args:
-            endpoint (str): The API endpoint that failed.
-            status (int): HTTP status code returned.
-            body (str | None, optional): Optional response body for error inspection.
-                Defaults to None.
-        """
-        super().__init__(f"'/{endpoint}' failed with HTTP {status}")
-        self.endpoint: str = endpoint
-        self.status: int = status
-        self.body: str | None = body
-
-
-class CoConRetryError(CoConError):
-    """
-    Raised when a retryable operation exceeds the maximum number of retry attempts.
-
-    Commonly occurs when repeated transient failures (e.g. timeouts) persist beyond the configured
-    limit in `Config.max_retries`.
-    """
-
-    pass
-
-
-@dataclass(slots=True)
-class Config:
-    """Configuration for CoConClient behavior."""
-
-    poll_interval: float = 1.0
-    max_retries: int = 5
-    backoff_base: float = 0.5
-    session_timeout: float = 7.0
-
-
-class _QueuedCommand(NamedTuple):
-    endpoint: str
-    params: dict[str, str] | None
-    future: Future[Any]
 
 
 class CoConClient:
@@ -132,8 +40,8 @@ class CoConClient:
         self,
         url: str,
         port: int = 8890,
-        handler: Callable[[dict], Awaitable[None]] | None = None,
-        on_handler_error: Callable[[Exception, dict], None] | None = None,
+        handler: AsyncHandler | None = None,
+        on_handler_error: ErrorHandler | None = None,
         config: Config | None = None,
     ) -> None:
         """
@@ -153,10 +61,10 @@ class CoConClient:
         self._notify_url: str = f"{self.base_url}/{_EP.NOTIFICATION.value}"
         self._shutdown_event = asyncio.Event()
         self.session: ClientSession | None = None
-        self._command_queue: asyncio.Queue[_QueuedCommand] = asyncio.Queue(maxsize=1000)
+        self._command_queue: asyncio.Queue[QueuedCommand] = asyncio.Queue(maxsize=1000)
         self._subscriptions: set[str] = set()
-        self._handler: Callable[[dict], Awaitable[None]] | None = handler
-        self._on_handler_error = on_handler_error
+        self._handler: AsyncHandler | None = handler
+        self._on_handler_error: ErrorHandler | None = on_handler_error
         self.config: Config = config or Config()
         self._connection_id: str = ""
 
@@ -357,8 +265,8 @@ class CoConClient:
                         await asyncio.sleep(1)
 
     async def _send_command(
-        self, endpoint: str, params: dict[str, str] | None
-    ) -> dict | str:
+        self, endpoint: str, params: CommandParams | None
+    ) -> JSON | str:
         """
         Internal method to send a command to a given endpoint with retry support.
 
@@ -378,7 +286,7 @@ class CoConClient:
 
         url = f"{self.base_url}/{endpoint}"
 
-        async def _send() -> dict | str:
+        async def _send() -> JSON | str:
             """
             Inner coroutine that performs the actual HTTP POST request.
 
@@ -418,7 +326,7 @@ class CoConClient:
         """
         while not self._shutdown_event.is_set():
             try:
-                qcmd: _QueuedCommand = await asyncio.wait_for(
+                qcmd: QueuedCommand = await asyncio.wait_for(
                     self._command_queue.get(), timeout=self.config.poll_interval
                 )
                 try:
@@ -530,7 +438,7 @@ class CoConClient:
 
         await self._command_queue.join()
 
-    async def send(self, endpoint: str, params: dict[str, str] | None = None) -> Any:
+    async def send(self, endpoint: str, params: CommandParams | None = None) -> Any:
         """
         Public method to queue a command for sending.
 
@@ -542,7 +450,7 @@ class CoConClient:
         """
         loop = asyncio.get_running_loop()
         fut: Future[Any] = loop.create_future()
-        await self._command_queue.put(_QueuedCommand(endpoint, params, fut))
+        await self._command_queue.put(QueuedCommand(endpoint, params, fut))
         return await fut
 
     async def subscribe(
@@ -586,7 +494,7 @@ class CoConClient:
             self._subscriptions.discard(str(model))
             logger.debug("/UnSubscribe - %s", resp)
 
-    async def set_handler(self, handler: Callable[[dict], Awaitable[None]]) -> None:
+    async def set_handler(self, handler: AsyncHandler) -> None:
         """
         Update the handler used to process incoming notification messages.
 
