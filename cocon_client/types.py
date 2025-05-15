@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import TypeVar, NamedTuple, Callable, Awaitable, Any
 from asyncio import Future
+from datetime import date
 
 T = TypeVar("T")
 JSON = dict[str, Any]
@@ -73,3 +74,28 @@ class Config:
     max_retries: int = 5
     backoff_base: float = 0.5
     session_timeout: float = 7.0
+
+
+@dataclass(slots=True)
+class Group:
+    id_: int
+    name: str
+
+
+@dataclass(slots=True)
+class Delegate:
+    """Class that define the data model that represents the single delegate"""
+
+    id_: int
+    first_name: str
+    name: str
+    street: str
+    street_number: int
+    post_code: str
+    city: str
+    country: str
+    title: str
+    birth_date: date
+    district: str
+    biography: str
+    groups: tuple[Group, ...]
