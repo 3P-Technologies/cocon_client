@@ -356,7 +356,9 @@ class CoConClient:
                         )
                         await asyncio.sleep(1)
 
-    async def _send_command(self, endpoint: str, params: dict[str, str] | None) -> Any:
+    async def _send_command(
+        self, endpoint: str, params: dict[str, str] | None
+    ) -> dict | str:
         """
         Internal method to send a command to a given endpoint with retry support.
 
