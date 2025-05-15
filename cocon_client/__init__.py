@@ -9,12 +9,6 @@ Top-level package for Televic CoCon client.
 # expose the client
 from .client import CoConClient
 
-# config
-from .config import Config
-
-# models
-from .models import Model
-
 # errors
 from .errors import (
     CoConError,
@@ -24,7 +18,7 @@ from .errors import (
 )
 
 # types
-from .types import AsyncHandler, ErrorHandler, CommandParams
+from .types import AsyncHandler, ErrorHandler, CommandParams, Config, Model
 
 __all__ = [
     "CoConClient",
