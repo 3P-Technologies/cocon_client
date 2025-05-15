@@ -4,6 +4,8 @@
 # Copyright (C) 3P Technologies Srl
 
 
+from dataclasses import dataclass
+from enum import Enum
 from typing import TypeVar, NamedTuple, Callable, Awaitable, Any
 from asyncio import Future
 
@@ -31,3 +33,43 @@ class QueuedCommand(NamedTuple):
     endpoint: str
     params: CommandParams | None
     future: Future[Any]
+
+
+class Model(str, Enum):
+    """Represents the various CoCon data models used in the API."""
+
+    ROOM = "Room"
+    MICROPHONE = "Microphone"
+    MEETING_AGENDA = "MeetingAgenda"
+    VOTING = "Voting"
+    TIMER = "Timer"
+    DELEGATE = "Delegate"
+    AUDIO = "Audio"
+    INTERPRETATION = "Interpretation"
+    LOGGING = "Logging"
+    BUTTON_LED_EVENT = "ButtonLED_Event"
+    INTERACTIVE = "Interactive"
+    EXTERNAL = "External"
+    INTERCOM = "Intercom"
+    VIDEO = "Video"
+
+    def __str__(self) -> str:
+        """Return the string representation of the enum value."""
+        return self.value
+
+
+class _EP(str, Enum):
+    """Internal enumeration of known API endpoints."""
+
+    CONNECT = "Connect"
+    NOTIFICATION = "Notification"
+
+
+@dataclass(slots=True)
+class Config:
+    """Configuration for CoConClient behavior."""
+
+    poll_interval: float = 1.0
+    max_retries: int = 5
+    backoff_base: float = 0.5
+    session_timeout: float = 7.0

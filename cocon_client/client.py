@@ -13,10 +13,18 @@ from asyncio import Task, Future
 from aiohttp import ClientSession, ClientTimeout, ClientResponseError
 from typing import Callable, Awaitable, Any, Self
 from types import TracebackType
-from .models import Model, _EP
 from .errors import CoConConnectionError, CoConCommandError, CoConRetryError
-from .types import T, JSON, CommandParams, AsyncHandler, ErrorHandler, QueuedCommand
-from .config import Config
+from .types import (
+    T,
+    JSON,
+    CommandParams,
+    AsyncHandler,
+    ErrorHandler,
+    QueuedCommand,
+    Model,
+    _EP,
+    Config,
+)
 
 logger = logging.getLogger(__name__)
 
