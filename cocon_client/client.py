@@ -557,7 +557,7 @@ class CoConClient:
                 a boolean, it is converted to a lowercase string.
         """
         for model in models:
-            resp: dict = await self._send_command(
+            resp = await self._send_command(
                 "Subscribe",
                 {
                     "Model": str(model),
@@ -576,7 +576,7 @@ class CoConClient:
             models (list[str | Model]): List of model names or `Model` enums to unsubscribe from.
         """
         for model in models:
-            resp: dict = await self._send_command(
+            resp = await self._send_command(
                 "Unsubscribe",
                 {
                     "Model": str(model),
