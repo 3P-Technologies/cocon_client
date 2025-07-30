@@ -216,6 +216,9 @@ class Delegates(BaseModel):
         return cls(delegates=items)
 
     def by_id(self, delegateId: int) -> Delegate | None:
+        if self.delegates is None:
+            return None
+
         for d in self.delegates:
             if d.Id == delegateId:
                 return d
@@ -248,13 +251,13 @@ class AgendaItems(BaseModel):
         items = [AgendaItem.from_dict(i) for i in data]
         return cls(agenda_items=items)
 
-    def get_active(self) -> AgendaItem | None:
+    def get_active(self) -> AgendaItem:
         if self.agenda_items is None:
-            return None
+            return AgendaItem()
         for item in self.agenda_items:
             if item.State == "active":
                 return item
-        return None
+        return AgendaItem
 
 
 @register_model("ScreenLockRemoved")
