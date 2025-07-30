@@ -2,6 +2,7 @@
 # errors.py
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 3P Technologies Srl
+"""Exception hierarchy used by the CoCon client."""
 
 
 class CoConError(Exception):
@@ -11,11 +12,10 @@ class CoConError(Exception):
 
 
 class CoConConnectionError(CoConError):
-    """
-    Raised when the client fails to establish a connection with the CoCon server.
+    """Raised when the client fails to establish a connection.
 
-    This may happen if the server is offline, unreachable, or responds with a failure during the
-    initial connection handshake.
+    This error usually indicates that the server is unreachable or returned a
+    failure during the initial handshake.
     """
 
     pass
@@ -40,11 +40,10 @@ class CoConCommandError(CoConError):
 
 
 class CoConRetryError(CoConError):
-    """
-    Raised when a retryable operation exceeds the maximum number of retry attempts.
+    """Raised when a retryable operation exceeds the retry limit.
 
-    Commonly occurs when repeated transient failures (e.g. timeouts) persist beyond the configured
-    limit in `Config.max_retries`.
+    This typically happens when transient failures persist beyond the configured
+    ``Config.max_retries`` value.
     """
 
     pass
