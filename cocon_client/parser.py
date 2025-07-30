@@ -2,6 +2,7 @@
 # parser.py
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 3P Technologies Srl
+"""Utilities to parse CoCon API notifications into Python dataclasses."""
 
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -22,6 +23,17 @@ def register_model(name: str) -> Callable[..., Any]:
 
 
 def parse_notification(message: JSON) -> Any:
+    """Convert a raw notification payload into a dataclass instance.
+
+    Args:
+        message: The JSON object received from the server.
+
+    Returns:
+        The parsed dataclass instance representing the payload.
+
+    Raises:
+        NotImplementedError: If the payload contains an unknown model key.
+    """
     for key, payload in message.items():
         model_cls = _model_registry.get(key)
         if model_cls:
@@ -33,6 +45,8 @@ def parse_notification(message: JSON) -> Any:
 
 @dataclass
 class BaseModel:
+    """Base class for models parsed from CoCon notifications."""
+
     @classmethod
     def from_dict(cls, data) -> BaseModel:
         return cls(**data)

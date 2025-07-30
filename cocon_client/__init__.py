@@ -2,8 +2,10 @@
 # __init__.py
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 3P Technologies Srl
-"""
-Top-level package for Televic CoCon client.
+"""Televic CoCon client package.
+
+This package exposes the :class:`CoConClient` along with common error types,
+data models and parsing helpers used by the client.
 """
 
 # expose the client

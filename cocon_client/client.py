@@ -2,6 +2,7 @@
 # client.py
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright (C) 3P Technologies Srl
+"""Asynchronous client for the Televic CoCon REST API."""
 
 import asyncio
 import aiohttp
@@ -202,8 +203,8 @@ class CoConClient:
         """Perform the notify long-poll request and dispatch data to the handler.
 
         Raises:
-            Exception: If session is None.
-            ClientResponseError: If HTTP response is not
+            Exception: If ``session`` is ``None``.
+            ClientResponseError: If the server returns a non-200 status code.
         """
         if self.session is None:
             raise Exception("Session is None.")
