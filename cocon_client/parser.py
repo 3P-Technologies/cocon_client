@@ -224,6 +224,13 @@ class Delegates(BaseModel):
                 return d
         return None
 
+    def filter_by_voting_right(self, voting_right: bool = True) -> Delegates:
+        if self.delegates is None:
+            return Delegates()
+
+        items = [d for d in self.delegates if d.VotingRight == voting_right]
+        return Delegates(delegates=items)
+
 
 @register_model("Agenda_ItemChanged")
 @register_model("AgendaItem")
