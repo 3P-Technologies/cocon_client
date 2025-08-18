@@ -35,7 +35,7 @@ jobs:
           python-version: "3.13"
       - name: Build wheel + sdist
         run: |
-          python -m pip install -U pip hatch hatch-vsc twine
+          python -m pip install -U pip hatch hatch-vcs twine
           hatch build
           twine check dist/*
       - uses: actions/upload-artifact@v4
