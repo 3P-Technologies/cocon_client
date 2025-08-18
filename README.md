@@ -113,7 +113,12 @@ for details.
 
 ---
 
+## Disclaimer
+
+See [NOTICE.md](NOTICE.md) for disclaimers regarding Televic CoCon.
+
+---
+
 ## 🛠 Maintainers
 
 Developed and maintained by **3P Technologies Srl**.
-
