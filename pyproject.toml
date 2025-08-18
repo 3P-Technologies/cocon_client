@@ -35,4 +35,4 @@ packages = ["cocon_client"]
 include = ["cocon_client/py.typed"]
 
 [tool.hatch.build.targets.sdist]
-include = ["cocon_client", "README.md", "pyproject.toml", "LICENSE*", "AUTHORS.md", "CONTRIBUTING.md", "docs"]
+include = ["cocon_client", "README.md", "pyproject.toml", "LICENSE*", "AUTHORS.md", "CONTRIBUTING.md"]
