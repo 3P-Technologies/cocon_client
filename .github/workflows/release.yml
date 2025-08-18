@@ -71,11 +71,11 @@ jobs:
       - name: Determine repository
         id: repo
         run: |
-          TAG="${GITHUB_REF_NAME}"
-          if [[ "$TAG" =~ [a-zA-Z] ]]; then
-            echo "repo=testpypi" >> "$GITHUB_OUTPUT"
+          TAG="${GITHUB_REF_NAME#v}"
+          if [[ "$TAG" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "repo=pypi" >> "$GITHUB_OUTPUT"     
           else
-            echo "repo=pypi" >> "$GITHUB_OUTPUT"
+            echo "repo=testpypi" >> "$GITHUB_OUTPUT"
           fi
       - name: Publish to TestPyPI
         if: steps.repo.outputs.repo == 'testpypi'
