@@ -24,7 +24,7 @@ automatic retries and clean shutdown of background tasks.
 The project requires **Python 3.11+**.
 
 ```bash
-pip install git+https://github.com/MarcoMiano/cocon_client.git
+pip install cocon_client
 ```
 
 To work on the library locally:
