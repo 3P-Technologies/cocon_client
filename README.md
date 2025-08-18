@@ -1,4 +1,4 @@
-[![release](https://github.com/MarcoMiano/cocon_client/actions/workflows/release.yml/badge.svg?branch=main)](https://github.com/MarcoMiano/cocon_client/actions/workflows/release.yml)
+[![release](https://github.com/MarcoMiano/cocon_client/actions/workflows/release.yml/badge.svg)](https://github.com/MarcoMiano/cocon_client/actions/workflows/release.yml)
 # Televic CoCon Client
 
 > An asynchronous Python client for interacting with the Televic CoCon REST API.
