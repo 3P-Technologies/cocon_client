@@ -79,7 +79,7 @@ jobs:
         if: steps.repo.outputs.repo == 'testpypi'
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
-          repository-url: https://test.pypi.org/simple
+          repository-url: https://test.pypi.org/simple/
       - name: Publish to PyPI
         if: steps.repo.outputs.repo == 'pypi'
         uses: pypa/gh-action-pypi-publish@release/v1
