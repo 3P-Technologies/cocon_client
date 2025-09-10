@@ -102,14 +102,25 @@ client = CoConClient("host", config=custom_config)
 ## 🧰 Contributing
 
 See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to report issues,
-submit patches and extend the parser with new models.
+submit patches, and extend the parser with new models.  
+By contributing, you agree to the dual-licensing model (LGPL-3.0-or-later or
+Commercial) described in the contributing guidelines.
 
 ---
 
 ## 📄 License
 
-This project is licensed under the **GNU AGPL v3 or later**. See [LICENSE](./LICENSE)
-for details.
+This project is dual-licensed:
+
+- **Open Source License:**  
+  GNU Lesser General Public License v3.0 or later (LGPL-3.0-or-later).  
+  See [LICENSE](./LICENSE) for the full license text.
+
+- **Commercial License:**  
+  Available for organizations that cannot, or prefer not to, comply with LGPL
+  terms. This option allows use in closed-source projects under custom terms.  
+  Contact **3P Technologies S.r.l.** at **contact@trepi.it / www.trepi.it**
+  for details.
 
 ---
 

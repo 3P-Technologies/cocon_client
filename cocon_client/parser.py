@@ -1,6 +1,6 @@
 # TELEVIC CoCon CLIENT
 # parser.py
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: LGPL-3.0-or-later
 # Copyright (C) 3P Technologies Srl
 """Utilities to parse CoCon API notifications into Python dataclasses."""
 

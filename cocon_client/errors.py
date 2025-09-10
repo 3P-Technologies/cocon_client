@@ -1,6 +1,6 @@
 # TELEVIC CoCon CLIENT
 # errors.py
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# SPDX-License-Identifier: LGPL-3.0-or-later
 # Copyright (C) 3P Technologies Srl
 """Exception hierarchy used by the CoCon client."""
 

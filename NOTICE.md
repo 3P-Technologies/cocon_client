@@ -13,8 +13,21 @@ Televic CoCon API over its documented REST/JSON endpoints.
 - This project is not affiliated with, endorsed by, or supported by
   Televic Conference NV.
 
+
 ## License of this project
 
-This library itself is released under the terms of the **GNU Affero General
-Public License v3.0 or later (AGPL-3.0-or-later)**. See the [LICENSE](LICENSE) file
-for the full license text.
+This library is made available under a **dual-license model**:
+
+- **Open Source License:**  
+  Licensed under the GNU Lesser General Public License v3.0 or later
+  (LGPL-3.0-or-later). See the [LICENSE](LICENSE) file for the full license text.  
+
+- **Commercial License:**  
+  A commercial license is available from the copyright holder for organizations
+  that cannot, or prefer not to, comply with LGPL terms. This option allows use
+  in closed-source projects with custom terms as negotiated.  
+
+For commercial licensing (closed-source usage, private modifications, support, warranties, or tailored terms), contact:
+
+- **3P Technologies S.r.l.**  
+- **contact@trepi.it / www.trepi.it**
