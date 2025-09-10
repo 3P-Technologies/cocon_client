@@ -28,7 +28,7 @@ classifiers = [
 Homepage = "https://github.com/3P-Technologies/cocon_client"
 Issues = "https://github.com/3P-Technologies/cocon_client/issues"
 Source = "https://github.com/3P-Technologies/cocon_client"
-"Commercial License" = "mailto:contact@trepi.it"
+"Commercial License" = "https://www.trepi.it/en/contacts/"
 [tool.hatch.version]
 source = "vcs"
 
