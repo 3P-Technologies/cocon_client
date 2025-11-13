@@ -299,3 +299,46 @@ class DelegateScreenSetChanged(BaseModel):
     IsShow: bool
     Screen: str
     Option: str
+
+
+@register_model("Unit")
+@dataclass
+class Unit(BaseModel):
+    RoomId: int = -1
+    SystemUnitId: int = -1
+    SerialNumber: str = ""
+    UnitCapabilitiesInfo: str = ""
+    WirelessCapability: bool = False
+    VersionInfo: str = ""
+    UnitType: str = ""
+
+
+@register_model("GetAllUnits")
+@dataclass
+class GetAllUnits(BaseModel):
+    all_units: list[Unit] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data) -> BaseModel:
+        items: list[Unit] = [Unit.from_dict(i) for i in data.get("Units", [])]
+        return cls(all_units=items)
+
+
+@register_model("Seat")
+@dataclass
+class Seat(BaseModel):
+    IsChairMan: bool = False
+    SeatId: int = -1
+    SeatName: str = ""
+    UnitId: int = -1
+
+
+@register_model("GetAllSeats")
+@dataclass
+class GetAllSeats(BaseModel):
+    all_seats: list[Seat] = field(default_factory=list)
+
+    @classmethod
+    def from_dict(cls, data) -> BaseModel:
+        items: list[Seat] = [Seat.from_dict(i) for i in data.get("Seats", [])]
+        return cls(all_seats=items)
